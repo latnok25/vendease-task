@@ -2,7 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CharacterService } from './characters.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Character,Gender } from '../entities/character.entity';
+import { Character,Gender,Status } from '../entities/character.entity';
 import { Repository } from 'typeorm';
 
 describe('CharacterService', () => {
@@ -51,23 +51,38 @@ describe('CharacterService', () => {
 
   describe('create', () => {
     it('should create and return a character', async () => {
-      const character = new Character();
-      jest.spyOn(repo, 'save').mockResolvedValueOnce(character);
-      expect(await service.create(character)).toEqual(character);
+      const characterData = { first_name: 'John', last_name: 'Doe', status: Status.ACTIVE, state_of_origin: 'Texas', gender: Gender.MALE };
+      const savedCharacter = { ...characterData, id: 1, created_at: new Date() };
+
+      jest.spyOn(repo, 'create').mockReturnValue(characterData as Character);
+      jest.spyOn(repo, 'save').mockResolvedValue(savedCharacter as Character);
+
+      const result = await service.create(characterData);
+
+      expect(result).toEqual(savedCharacter);
+      expect(repo.create).toHaveBeenCalledWith(characterData);
+      expect(repo.save).toHaveBeenCalledWith(characterData as Character);
     });
   });
 
   describe('update', () => {
     it('should update and return the character', async () => {
-      const character = new Character();
-      jest.spyOn(repo, 'update').mockResolvedValueOnce(null);
-      jest.spyOn(service, 'findById').mockResolvedValueOnce(character);
-      expect(await service.update(1, character)).toEqual(character);
+      const characterData = { first_name: 'John', last_name: 'Doe', status: Status.ACTIVE, state_of_origin: 'Texas', gender: Gender.MALE };
+      const existingCharacter = { ...characterData, id: 1, created_at: new Date() }as Character;
+
+      jest.spyOn(repo, 'findOne').mockResolvedValueOnce(existingCharacter as Character);
+      jest.spyOn(repo, 'save').mockResolvedValueOnce({ ...existingCharacter, ...characterData });
+
+      const result = await service.update(1, characterData);
+
+      expect(result).toEqual({ ...existingCharacter, ...characterData });
+      expect(repo.findOne).toHaveBeenCalledWith({ where: { id: 1 }, relations: ['location', 'episodes'] });
+      expect(repo.save).toHaveBeenCalledWith({ ...existingCharacter, ...characterData });
     });
 
     it('should throw an error if character not found', async () => {
-      jest.spyOn(repo, 'update').mockResolvedValueOnce(null);
-      jest.spyOn(service, 'findById').mockResolvedValueOnce(null);
+      jest.spyOn(repo, 'findOne').mockResolvedValueOnce(null);
+
       await expect(service.update(1, new Character())).rejects.toThrow('Character not found');
     });
   });
@@ -91,7 +106,7 @@ describe('CharacterService', () => {
     it('should return an array of filtered characters', async () => {
       const characters: Character[] = [];
       jest.spyOn(repo, 'find').mockResolvedValueOnce(characters);
-      expect(await service.filterBy({ gender: 'MALE' })).toEqual(characters);
+      expect(await service.filterBy({ gender: Gender.MALE })).toEqual(characters);
     });
   });
 });

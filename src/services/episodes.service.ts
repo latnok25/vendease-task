@@ -28,6 +28,29 @@ export class EpisodeService {
       .getMany();
   }
 
+//   async addComment(episodeId: number, commentData: Partial<Comment>): Promise<Episode> {
+//     const episode = await this.episodesRepository.findOne({
+//       where: { id: episodeId },
+//       relations: ['episodeComments'],
+//     });
+
+//     if (!episode) {
+//       throw new NotFoundException('Episode not found');
+//     }
+
+//     const comment = this.commentRepository.create(commentData);
+//     comment.episode = episode;
+//     await this.commentRepository.save(comment);
+
+//     // Reload the episode to include the newly added comment
+//     return this.episodesRepository.findOne({
+//       where: { id: episodeId },
+//       relations: ['episodeComments'],
+//     });
+
+    
+//   }
+
   async addComment(episodeId: number, commentData: Partial<Comment>): Promise<Episode> {
     const episode = await this.episodesRepository.findOne({
       where: { id: episodeId },
@@ -39,13 +62,8 @@ export class EpisodeService {
     }
 
     const comment = this.commentRepository.create(commentData);
-    comment.episode = episode;
     await this.commentRepository.save(comment);
-
-    // Reload the episode to include the newly added comment
-    return this.episodesRepository.findOne({
-      where: { id: episodeId },
-      relations: ['episodeComments'],
-    });
+    episode.episodeComments.push(comment);
+    return episode;
   }
 }

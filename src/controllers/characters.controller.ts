@@ -1,5 +1,5 @@
 // src/controllers/character.controller.ts
-import { Controller, Get, Post, Body, Param, Query, Put, Delete, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Put, Delete, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import { CharacterService } from '../services/characters.service';
 import { Character, Gender, Status } from '../entities/character.entity';
 
@@ -55,6 +55,9 @@ export class CharacterController {
     try {
       return await this.characterService.update(id, characterData);
     } catch (error) {
+      if (error.message === 'Character not found') {
+        throw new NotFoundException('Character not found');
+      }
       throw new HttpException('Error updating character', HttpStatus.BAD_REQUEST);
     }
   }

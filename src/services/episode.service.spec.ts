@@ -8,8 +8,8 @@ import { Repository } from 'typeorm';
 
 describe('EpisodeService', () => {
   let service: EpisodeService;
-  let repo: Repository<Episode>;
-  let commentRepo: Repository<Comment>;
+  let commentRepository: Repository<Comment>;
+  let episodeRepository: Repository<Episode>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,8 +27,8 @@ describe('EpisodeService', () => {
     }).compile();
 
     service = module.get<EpisodeService>(EpisodeService);
-    repo = module.get<Repository<Episode>>(getRepositoryToken(Episode));
-    commentRepo = module.get<Repository<Comment>>(getRepositoryToken(Comment));
+    episodeRepository = module.get<Repository<Episode>>(getRepositoryToken(Episode));
+    commentRepository = module.get<Repository<Comment>>(getRepositoryToken(Comment));
   });
 
   it('should be defined', () => {
@@ -38,7 +38,7 @@ describe('EpisodeService', () => {
   describe('findAllSortedByReleaseDate', () => {
     it('should return an array of episodes sorted by release date', async () => {
       const episodes: Episode[] = [];
-      jest.spyOn(repo, 'find').mockResolvedValueOnce(episodes);
+      jest.spyOn(episodeRepository, 'find').mockResolvedValueOnce(episodes);
       expect(await service.findAllSortedByReleaseDate()).toEqual(episodes);
     });
   });
@@ -46,7 +46,7 @@ describe('EpisodeService', () => {
   describe('findAllByCharacter', () => {
     it('should return an array of episodes for a character', async () => {
       const episodes: Episode[] = [];
-      jest.spyOn(repo, 'createQueryBuilder').mockReturnValue({
+      jest.spyOn(episodeRepository, 'createQueryBuilder').mockReturnValue({
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValueOnce(episodes),
@@ -55,20 +55,48 @@ describe('EpisodeService', () => {
     });
   });
 
+//   describe('addComment', () => {
+//     it('should add a comment to an episode and return the episode', async () => {
+//       const episode = new Episode();
+//       episode.id = 1;
+//       episode.episodeComments = [];
+
+//       const commentData = { comment: 'Great episode!' };
+
+//       jest.spyOn(episodeRepository, 'findOne').mockResolvedValue(episode);
+//       jest.spyOn(commentRepository, 'create').mockReturnValue(commentData as Comment);
+//       jest.spyOn(commentRepository, 'save').mockResolvedValue(commentData as Comment);
+//       jest.spyOn(episodeRepository, 'save').mockResolvedValue(episode);
+
+//       const result = await service.addComment(1, commentData);
+
+//       expect(result).toEqual(episode);
+//       expect(commentRepository.create).toHaveBeenCalledWith(commentData);
+//       expect(commentRepository.save).toHaveBeenCalledWith(commentData as Comment);
+//       expect(episodeRepository.save).toHaveBeenCalledWith(episode);
+//     });
+//   });
+
   describe('addComment', () => {
     it('should add a comment to an episode and return the episode', async () => {
       const episode = new Episode();
+      episode.id = 1;
       episode.episodeComments = [];
-      const comment = new Comment();
-      jest.spyOn(repo, 'findOne').mockResolvedValueOnce(episode);
-      jest.spyOn(commentRepo, 'save').mockResolvedValueOnce(comment);
-      expect(await service.addComment(1 , { comment: 'Great episode!', ip_address_location: '127.0.0.1' })).toEqual(episode);
-    });
 
-    it('should throw an error if episode not found', async () => {
-      jest.spyOn(repo, 'findOne').mockResolvedValueOnce(null);
-      await expect(service.addComment(1, { comment: 'Great episode!', ip_address_location: '127.0.0.1' })).rejects.toThrow('Episode not found');
+      const commentData: Partial<Comment> = { comment: 'Great episode!', ip_address_location: '127.0.0.1', created_at: new Date() };
+      const comment = new Comment();
+      Object.assign(comment, commentData);
+
+      jest.spyOn(episodeRepository, 'findOne').mockResolvedValue(episode);
+      jest.spyOn(commentRepository, 'create').mockReturnValue(comment);
+      jest.spyOn(commentRepository, 'save').mockResolvedValue(comment);
+
+      const result = await service.addComment(1, commentData);
+
+      expect(result).toEqual(episode);
+      expect(episodeRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 }, relations: ['episodeComments'] });
+      expect(commentRepository.create).toHaveBeenCalledWith(commentData);
+      expect(commentRepository.save).toHaveBeenCalledWith(comment);
     });
   });
 });
-

@@ -23,10 +23,19 @@ export class CharacterService {
     });
 
     if (!character) {
-      throw new NotFoundException(`Character with ID ${id} not found`);
+      throw new NotFoundException('Character not found');
     }
 
     return character;
+  }
+
+  async update(id: number, characterData: Partial<Character>): Promise<Character> {
+    const character = await this.findById(id);
+    if (!character) {
+      throw new NotFoundException('Character not found');
+    }
+    Object.assign(character, characterData);
+    return this.characterRepository.save(character);
   }
 
   async create(characterData: Partial<Character>): Promise<Character> {
@@ -34,10 +43,10 @@ export class CharacterService {
     return this.characterRepository.save(character);
   }
 
-  async update(id: number, characterData: Partial<Character>): Promise<Character> {
-    await this.characterRepository.update(id, characterData);
-    return this.findById(id);
-  }
+//   async update(id: number, characterData: Partial<Character>): Promise<Character> {
+//     await this.characterRepository.update(id, characterData);
+//     return this.findById(id);
+//   }
 
   async delete(id: number): Promise<void> {
     await this.characterRepository.delete(id);
